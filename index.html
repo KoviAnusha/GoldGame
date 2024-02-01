@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Space Game</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* Prevents scrolling */
+        }
+
+        canvas {
+            background: url("sky.jpg");
+            border: 1px solid black;
+            display: block; /* Removes default margin */
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameBoard"></canvas>
+    <audio id="hitSound">
+        <source src="hit.mp3" type="audio/mpeg" />
+    </audio>
+
+    <script>
+        const canvas = document.getElementById("gameBoard");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const ctx = canvas.getContext("2d");
+
+        const playerImg = new Image();
+        playerImg.src = "rocket.png";
+
+        const enemyImg = new Image();
+        enemyImg.src = "rock.png";
+
+        const hitSound = document.getElementById("hitSound");
+
+        let score = 0;
+        const enemies = [];
+
+        const player = {
+            x: canvas.width / 2 - 50,
+            y: canvas.height - 110 - 100,
+            speed: 15,
+            width: 100,
+            height: 100,
+        };
+
+        let startTime = Date.now();
+
+        function createEnemy() {
+            if (enemies.length < 5) {
+                const size = Math.floor(Math.random() * 50) + 25;
+                const x = Math.floor(Math.random() * (canvas.width - size));
+                const y = -size;
+                const speed = Math.floor(Math.random() * 5) + 1;
+
+                enemies.push({
+                    size,
+                    x,
+                    y,
+                    speed,
+                });
+            }
+        }
+
+        function updateEnemies() {
+            for (let i = 0; i < enemies.length; i++) {
+                const enemy = enemies[i];
+                enemy.y += enemy.speed;
+
+                const rocketPath = new Path2D();
+                rocketPath.rect(player.x, player.y, player.width, player.height);
+                if (ctx.isPointInPath(rocketPath, enemy.x, enemy.y)) {
+                    if (enemy.size <= 50) {
+                        score += 1;
+                    } else if (enemy.size <= 75) {
+                        score += 2;
+                    } else {
+                        score += 3;
+                    }
+                    enemies.splice(i, 1);
+                    hitSound.play();
+                }
+
+                if (enemy.y > canvas.height + enemy.size) {
+                    enemies.splice(i, 1);
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+            for (let i = 0; i < enemies.length; i++) {
+                const enemy = enemies[i];
+                ctx.drawImage(enemyImg, enemy.x, enemy.y, enemy.size, enemy.size);
+            }
+            ctx.font = "24px Arial";
+            ctx.fillStyle = "white";
+            ctx.fillText(`Score: ${score}`, 10, 30);
+
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            ctx.fillText(`Time: ${elapsedTime}`, canvas.width - 120, 30);
+        }
+
+        function handleKeyDown(event) {
+            switch (event.key) {
+                case "ArrowLeft":
+                    if (player.x - player.speed >= 0) {
+                        player.x -= player.speed;
+                    }
+                    break;
+                case "ArrowRight":
+                    if (player.x + player.speed + player.width <= canvas.width) {
+                        player.x += player.speed;
+                    }
+                    break;
+                case "ArrowUp":
+                    if (player.y - player.speed >= 0) {
+                        player.y -= player.speed;
+                    }
+                    break;
+                case "ArrowDown":
+                    if (player.y + player.speed + player.height <= canvas.height) {
+                        player.y += player.speed;
+                    }
+                    break;
+            }
+        }
+
+        function loop() {
+            createEnemy();
+            updateEnemies();
+            draw();
+
+            requestAnimationFrame(loop);
+        }
+
+        document.addEventListener("keydown", handleKeyDown);
+
+        loop();
+    </script>
+</body>
+</html>
